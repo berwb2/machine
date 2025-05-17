@@ -1,1 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Waste Detector</title>
+</head>
+<body>
+  <h1>Upload or Take a Photo</h1>
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" />
+  <img id="preview" width="300"/>
+  <script>
+    const input = document.getElementById('cameraInput');
+    const preview = document.getElementById('preview');
+
+    input.onchange = async (event) => {
+      const file = event.target.files[0];
+      preview.src = URL.createObjectURL(file);
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/predict', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      alert(JSON.stringify(data));
+    };
+  </script>
+</body>
+</html>
 
