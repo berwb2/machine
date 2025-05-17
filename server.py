@@ -1,32 +1,27 @@
-from flask import Flask, request, jsonify
-from PIL import Image
+from fastapi import FastAPI, File, UploadFile
+from ultralytics import YOLO
+import cv2
 import numpy as np
+from io import BytesIO
 
-import numpy as np
-import onnxruntime as ort
+app = FastAPI()
 
-app = Flask(__name__)
+# Load your custom-trained model
+model = YOLO("yolov8n.pt")
 
-# Load model
-session = ort.InferenceSession("yolov8_waste_final.onnx", providers=['CPUExecutionProvider'])
+@app.post("/detect")
+async def detect_image(file: UploadFile = File(...)):
+    contents = await file.read()
+    nparr = np.frombuffer(contents, np.uint8)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    file = request.files['image']
-    img_bytes = file.read()
-    nparr = np.frombuffer(img_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    results = model(image)
+    boxes = results[0].boxes.xyxy.cpu().numpy()
+    confidences = results[0].boxes.conf.cpu().numpy()
+    classes = results[0].boxes.cls.cpu().numpy()
 
-    # Preprocess
-    input_img = cv2.resize(img, (640, 640))
-    input_img = input_img.transpose(2, 0, 1)[np.newaxis, :, :, :] / 255.0
-    input_img = input_img.astype(np.float32)
-
-    # Inference
-    outputs = session.run(None, {session.get_inputs()[0].name: input_img})[0]
-
-    # Post-process (dummy for now)
-    return jsonify({"message": "Prediction made", "shape": outputs.shape})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    return {
+        "boxes": boxes.tolist(),
+        "confidences": confidences.tolist(),
+        "classes": classes.tolist()
+    }
