@@ -3,3 +3,6 @@ gunicorn
 onnxruntime
 numpy
 opencv-python
+ultralytics
+fastapi
+
