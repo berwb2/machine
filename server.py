@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
-import cv2
+from PIL import Image
+import numpy as np
+
 import numpy as np
 import onnxruntime as ort
 
